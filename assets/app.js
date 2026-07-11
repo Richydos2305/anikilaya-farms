@@ -1,4 +1,4 @@
-const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx_uQ1SJlur6Ap_LGCgpHP4DJLzbdpMKfVqNC0As4ArQ5Sw6_TpO_yDL5RnFYErs0q0/exec';
+const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxOeKu-0x8pQhl--0itgojh6VKiwv0S1g3zMJf0l9sfpD1OYMWz6VwKfCwru1Ob0e7NEg/exec';
 
 let sessionPasscode = null;
 let sessionRole = null;
