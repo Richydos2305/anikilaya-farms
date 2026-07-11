@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Anikilaya Farms</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Funnel+Sans:wght@500;700&family=Geist:wght@400;500;600;700&family=Newsreader:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body>
+    <!-- ═══ LOGIN VIEW ═══ -->
+    <section id="login-view" class="view">
+      <div class="mobile-brand">
+        <div class="mobile-logo">A</div>
+        <div class="mobile-brand-name">Anikilaya Farms</div>
+        <div class="mobile-brand-tagline">Submissions, simplified.</div>
+      </div>
+      <div class="auth-layout">
+        <div class="auth-hero">
+          <p class="auth-hero-tagline">Submissions, simplified.</p>
+          <p class="auth-hero-brand">Anikilaya Farms</p>
+        </div>
+        <div class="auth-panel">
+          <div class="auth-box">
+            <div class="mobile-divider"></div>
+            <h1>Welcome</h1>
+            <p class="subtitle">Enter the staff passcode to continue.</p>
+
+            <form id="login-form">
+              <div class="form-group">
+                <label for="passcode">Passcode</label>
+                <input id="passcode" class="form-input" type="password" placeholder="••••••••" required />
+                <div id="passcode-error" class="field-error" hidden>Incorrect passcode. Please try again.</div>
+                <div id="login-network-error" class="field-error" hidden>Something went wrong. Please check your connection and try again.</div>
+              </div>
+              <button class="btn-primary" type="submit">Enter</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ FORM VIEW ═══ -->
+    <section id="form-view" class="view" hidden>
+      <div class="form-page">
+        <button type="button" class="back-link" id="form-back-btn">← Back</button>
+        <h1 class="page-title">New Submission</h1>
+        <form id="submission-form">
+          <div class="form-section" id="submission-fields"></div>
+
+          <div id="submission-status" class="success-banner" hidden>Submitted.</div>
+          <div id="submission-error" class="error-banner" hidden>Something went wrong. Please try again.</div>
+
+          <div class="form-actions">
+            <button class="btn-save" type="submit">Submit</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ═══ CUSTOMIZE VIEW ═══ -->
+    <section id="customize-view" class="view" hidden>
+      <div class="form-page">
+        <button type="button" class="back-link" id="customize-back-btn">← Back</button>
+        <h1 class="page-title">Customize Form</h1>
+
+        <div class="form-section">
+          <div id="field-list"></div>
+          <button type="button" id="add-field-btn" class="add-field-btn">+ Add Field</button>
+        </div>
+
+        <div id="customize-status" class="success-banner" hidden>Saved.</div>
+        <div id="customize-error" class="error-banner" hidden>Something went wrong. Please try again.</div>
+
+        <div class="form-actions">
+          <button type="button" id="save-fields-btn" class="btn-save">Save</button>
+        </div>
+      </div>
+    </section>
+
+    <script src="/assets/app.js"></script>
+  </body>
+</html>
