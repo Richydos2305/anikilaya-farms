@@ -281,6 +281,18 @@ input {
 }
 
 /* ══════════════════════════════════════
+   CHOOSER VIEW
+══════════════════════════════════════ */
+.chooser-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.chooser-options .btn-save {
+  width: 100%;
+}
+
+/* ══════════════════════════════════════
    FORM VIEW (submission page)
 ══════════════════════════════════════ */
 .form-page {

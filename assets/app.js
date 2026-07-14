@@ -2,6 +2,7 @@ const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxOeKu-0x8pQhl--0it
 
 let sessionPasscode = null;
 let sessionRole = null;
+let currentFormKey = 'main';
 
 async function callApi(action, payload = {}) {
   const res = await fetch(WEB_APP_URL, {
@@ -17,12 +18,29 @@ function clearSession() {
   sessionRole = null;
 }
 
-// Fired on page load and whenever we return to the login view, so the
-// getFields round trip (which needs no passcode) overlaps with the time the
-// person spends typing their passcode instead of happening after login.
-let prefetchedFieldsPromise = null;
+// Fired on page load, whenever we return to the login view, and whenever we
+// land back on the chooser, so each form's getFields round trip (none need a
+// passcode) overlaps with the time the person spends typing their passcode
+// or looking at the chooser, instead of happening after they click a button.
+//
+// Each form is fetched at most once per page load — fieldsCache holds onto
+// the result for the rest of the session instead of refetching every time
+// someone revisits a form, so a customize-form change made elsewhere won't
+// show up until the page is reloaded. A failed fetch clears its own cache
+// entry so the next visit/prefetch can retry rather than being stuck.
+const FORM_KEYS = ['main', 'sales', 'expenses'];
+let fieldsCache = {};
+function getFieldsCached_(formKey) {
+  if (!fieldsCache[formKey]) {
+    fieldsCache[formKey] = callApi('getFields', { form: formKey }).catch((err) => {
+      fieldsCache[formKey] = null;
+      throw err;
+    });
+  }
+  return fieldsCache[formKey];
+}
 function prefetchFields() {
-  prefetchedFieldsPromise = callApi('getFields');
+  FORM_KEYS.forEach((formKey) => getFieldsCached_(formKey));
 }
 prefetchFields();
 
@@ -44,6 +62,7 @@ function slugify(label, existingIds) {
 // ─── Views ───
 const views = {
   login: document.getElementById('login-view'),
+  chooser: document.getElementById('chooser-view'),
   form: document.getElementById('form-view'),
   customize: document.getElementById('customize-view')
 };
@@ -87,7 +106,7 @@ loginForm.addEventListener('submit', async (e) => {
 
   if (!result.ok) {
     if (result.error === 'invalid_passcode') {
-      // prefetchedFieldsPromise is still good — same passcode, unrelated field data.
+      // prefetchedFieldsPromises are still good — same passcode, unrelated field data.
       passcodeError.hidden = false;
       passcodeInput.classList.add('error');
     } else {
@@ -100,24 +119,36 @@ loginForm.addEventListener('submit', async (e) => {
   sessionPasscode = value;
   sessionRole = result.role;
   loginForm.reset();
+  showView('chooser');
+});
 
-  if (result.role === 'staff') {
+document.getElementById('chooser-logout-btn').addEventListener('click', () => {
+  clearSession();
+  showView('login');
+  prefetchFields();
+});
+
+async function selectForm(formKey) {
+  currentFormKey = formKey;
+  if (sessionRole === 'staff') {
     await renderSubmissionForm();
     showView('form');
   } else {
     await renderFieldBuilder();
     showView('customize');
   }
-});
+}
+
+document.getElementById('chooser-main-btn').addEventListener('click', () => selectForm('main'));
+document.getElementById('chooser-sales-btn').addEventListener('click', () => selectForm('sales'));
+document.getElementById('chooser-expenses-btn').addEventListener('click', () => selectForm('expenses'));
 
 document.getElementById('form-back-btn').addEventListener('click', () => {
-  clearSession();
-  showView('login');
+  showView('chooser');
   prefetchFields();
 });
 document.getElementById('customize-back-btn').addEventListener('click', () => {
-  clearSession();
-  showView('login');
+  showView('chooser');
   prefetchFields();
 });
 
@@ -135,12 +166,9 @@ async function renderSubmissionForm() {
   submissionError.hidden = true;
   submissionFieldsContainer.innerHTML = '<p class="loading-placeholder">Loading form…</p>';
 
-  const fieldsPromise = prefetchedFieldsPromise || callApi('getFields');
-  prefetchedFieldsPromise = null;
-
   let result;
   try {
-    result = await fieldsPromise;
+    result = await getFieldsCached_(currentFormKey);
   } catch (err) {
     submissionFieldsContainer.innerHTML =
       '<p class="field-error">Couldn\'t load the form. Check your connection and reload.</p>';
@@ -148,6 +176,7 @@ async function renderSubmissionForm() {
   }
 
   if (!result.ok) {
+    fieldsCache[currentFormKey] = null;
     submissionFieldsContainer.innerHTML =
       '<p class="field-error">Couldn\'t load the form. Please reload and try again.</p>';
     return;
@@ -164,26 +193,70 @@ async function renderSubmissionForm() {
     label.setAttribute('for', 'field-' + field.id);
     label.textContent = field.label;
 
-    const input = document.createElement('input');
-    input.id = 'field-' + field.id;
-    input.className = 'form-input';
-    input.required = true;
-    if (field.type === 'number') {
-      input.type = 'number';
-      input.min = '0';
-      input.step = '0.01';
-      input.placeholder = '0';
-    } else if (field.type === 'date') {
-      input.type = 'date';
+    let input;
+    if (field.type === 'select') {
+      input = document.createElement('select');
+      input.id = 'field-' + field.id;
+      input.className = 'form-select';
+      input.required = true;
+
+      const blankOption = document.createElement('option');
+      blankOption.value = '';
+      blankOption.textContent = 'Select…';
+      input.appendChild(blankOption);
+
+      (field.options || []).forEach((opt) => {
+        const option = document.createElement('option');
+        option.value = opt;
+        option.textContent = opt;
+        input.appendChild(option);
+      });
     } else {
-      input.type = 'text';
-      input.placeholder = field.label;
+      input = document.createElement('input');
+      input.id = 'field-' + field.id;
+      input.className = 'form-input';
+      input.required = true;
+      if (field.type === 'number') {
+        input.type = 'number';
+        input.min = '0';
+        input.step = '0.01';
+        input.placeholder = '0';
+      } else if (field.type === 'date') {
+        input.type = 'date';
+      } else {
+        input.type = 'text';
+        input.placeholder = field.label;
+      }
     }
 
     group.appendChild(label);
     group.appendChild(input);
     submissionFieldsContainer.appendChild(group);
   });
+
+  if (currentFormKey === 'sales') {
+    setupSalesTotalAutoCalc_();
+  }
+}
+
+// Sales-specific convenience: Total = Quantity × Price, recomputed live and
+// locked from manual editing. Relies on the seeded field ids (quantity/price/
+// total) — same hardcoded-by-id fragility as the Egg Production Rate calc on
+// the main form, so it silently stops working if the admin renames those
+// fields (renaming recomputes the id via slugify()).
+function setupSalesTotalAutoCalc_() {
+  const quantityEl = document.getElementById('field-quantity');
+  const priceEl = document.getElementById('field-price');
+  const totalEl = document.getElementById('field-total');
+  if (!quantityEl || !priceEl || !totalEl) return;
+
+  totalEl.readOnly = true;
+  const recompute = () => {
+    const total = (Number(quantityEl.value) || 0) * (Number(priceEl.value) || 0);
+    totalEl.value = total.toFixed(2);
+  };
+  quantityEl.addEventListener('input', recompute);
+  priceEl.addEventListener('input', recompute);
 }
 
 submissionForm.addEventListener('submit', async (e) => {
@@ -202,7 +275,7 @@ submissionForm.addEventListener('submit', async (e) => {
 
   let result;
   try {
-    result = await callApi('submit', { passcode: sessionPasscode, values });
+    result = await callApi('submit', { passcode: sessionPasscode, form: currentFormKey, values });
   } catch (err) {
     submissionSubmitBtn.disabled = false;
     submissionSubmitBtn.textContent = 'Submit';
@@ -241,23 +314,21 @@ async function renderFieldBuilder() {
   customizeError.hidden = true;
   fieldListEl.innerHTML = '<p class="loading-placeholder">Loading fields…</p>';
 
-  const fieldsPromise = prefetchedFieldsPromise || callApi('getFields');
-  prefetchedFieldsPromise = null;
-
   let result;
   try {
-    result = await fieldsPromise;
+    result = await getFieldsCached_(currentFormKey);
   } catch (err) {
     fieldListEl.innerHTML = '<p class="field-error">Couldn\'t load fields. Check your connection and reload.</p>';
     return;
   }
 
   if (!result.ok) {
+    fieldsCache[currentFormKey] = null;
     fieldListEl.innerHTML = '<p class="field-error">Couldn\'t load fields. Please reload and try again.</p>';
     return;
   }
 
-  builderFields = result.fields.map((f) => ({ ...f }));
+  builderFields = result.fields.map((f) => ({ ...f, optionsText: (f.options || []).join(', ') }));
   drawFieldRows();
 }
 
@@ -282,7 +353,8 @@ function drawFieldRows() {
     [
       ['text', 'Text'],
       ['number', 'Number'],
-      ['date', 'Date']
+      ['date', 'Date'],
+      ['select', 'Dropdown']
     ].forEach(([value, text]) => {
       const option = document.createElement('option');
       option.value = value;
@@ -292,6 +364,7 @@ function drawFieldRows() {
     });
     typeSelect.addEventListener('change', () => {
       builderFields[index].type = typeSelect.value;
+      drawFieldRows();
     });
 
     const deleteBtn = document.createElement('button');
@@ -308,11 +381,23 @@ function drawFieldRows() {
     row.appendChild(typeSelect);
     row.appendChild(deleteBtn);
     fieldListEl.appendChild(row);
+
+    if (field.type === 'select') {
+      const optionsInput = document.createElement('input');
+      optionsInput.type = 'text';
+      optionsInput.className = 'form-input';
+      optionsInput.value = field.optionsText || '';
+      optionsInput.placeholder = 'Options, comma-separated';
+      optionsInput.addEventListener('input', () => {
+        builderFields[index].optionsText = optionsInput.value;
+      });
+      fieldListEl.appendChild(optionsInput);
+    }
   });
 }
 
 addFieldBtn.addEventListener('click', () => {
-  builderFields.push({ id: '', label: '', type: 'text' });
+  builderFields.push({ id: '', label: '', type: 'text', optionsText: '' });
   drawFieldRows();
 });
 
@@ -326,10 +411,16 @@ saveFieldsBtn.addEventListener('click', async () => {
     .map((f) => {
       const id = slugify(f.label, usedIds);
       usedIds.push(id);
-      return { id, label: f.label.trim(), type: f.type };
+      const field = { id, label: f.label.trim(), type: f.type };
+      if (f.type === 'select') {
+        field.options = (f.optionsText || '').split(',').map((o) => o.trim()).filter(Boolean);
+      }
+      return field;
     });
 
-  if (finalFields.length === 0) {
+  const hasEmptySelect = finalFields.some((f) => f.type === 'select' && (!f.options || f.options.length === 0));
+
+  if (finalFields.length === 0 || hasEmptySelect) {
     customizeError.hidden = false;
     return;
   }
@@ -339,7 +430,7 @@ saveFieldsBtn.addEventListener('click', async () => {
 
   let result;
   try {
-    result = await callApi('saveFields', { passcode: sessionPasscode, fields: finalFields });
+    result = await callApi('saveFields', { passcode: sessionPasscode, form: currentFormKey, fields: finalFields });
   } catch (err) {
     saveFieldsBtn.disabled = false;
     saveFieldsBtn.textContent = 'Save';
@@ -360,7 +451,12 @@ saveFieldsBtn.addEventListener('click', async () => {
     return;
   }
 
-  builderFields = result.fields.map((f) => ({ ...f }));
+  builderFields = result.fields.map((f) => ({ ...f, optionsText: (f.options || []).join(', ') }));
   drawFieldRows();
   customizeStatus.hidden = false;
+
+  // Keep the cache in sync so a staff member (or the admin, revisiting this
+  // form later in the same page load) sees the just-saved fields instead of
+  // whatever was cached before this save.
+  fieldsCache[currentFormKey] = Promise.resolve({ ok: true, fields: result.fields });
 });
