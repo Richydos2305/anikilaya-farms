@@ -39,8 +39,13 @@ input {
   touch-action: manipulation;
 }
 
-.view[hidden] {
-  display: none;
+/* Author rules like .btn-save{display:flex} tie in specificity with the
+   browser's default [hidden]{display:none} UA rule, and author styles win
+   ties — so any element that both gets a display value from a class AND is
+   toggled via the hidden attribute (e.g. chooser-receipts-btn) needs this to
+   actually disappear. */
+[hidden] {
+  display: none !important;
 }
 
 /* ══════════════════════════════════════
@@ -57,19 +62,30 @@ input {
     url('https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=900&q=80') center/cover no-repeat;
   display: flex;
   flex-direction: column;
+  align-items: center;
   justify-content: flex-end;
+  text-align: center;
   padding: 40px;
   color: #fff;
 }
+.auth-hero-logo {
+  width: 140px;
+  height: 140px;
+  object-fit: contain;
+  background: var(--surface-primary);
+  border-radius: 28px;
+  padding: 14px;
+  margin-bottom: 24px;
+}
 .auth-hero-tagline {
-  font-size: 13px;
+  font-size: 15px;
   opacity: 0.7;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   font-family: 'Newsreader', Georgia, serif;
 }
 .auth-hero-brand {
   font-family: 'Funnel Sans', system-ui, sans-serif;
-  font-size: 26px;
+  font-size: 34px;
   font-weight: 700;
 }
 .auth-panel {
@@ -106,21 +122,17 @@ input {
   gap: 8px;
 }
 .mobile-logo {
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
-  background: var(--accent-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--surface-primary);
-  font-family: 'Funnel Sans', system-ui, sans-serif;
-  font-size: 20px;
-  font-weight: 700;
+  width: 96px;
+  height: 96px;
+  border-radius: 22px;
+  background: var(--card-fill);
+  border: 1px solid var(--border-subtle);
+  object-fit: contain;
+  padding: 8px;
 }
 .mobile-brand-name {
   font-family: 'Funnel Sans', system-ui, sans-serif;
-  font-size: 20px;
+  font-size: 26px;
   font-weight: 700;
   color: var(--surface-inverse);
 }
@@ -236,6 +248,32 @@ input {
 }
 .btn-ghost:active {
   transform: scale(0.97);
+}
+
+.view-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  text-align: center;
+  margin-bottom: 28px;
+}
+.view-brand img {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  background: var(--card-fill);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  padding: 8px;
+}
+.view-brand span {
+  font-family: 'Funnel Sans', system-ui, sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--surface-inverse);
 }
 
 .back-link {
@@ -475,5 +513,637 @@ input {
   .custom-field-type {
     flex: 1;
     width: auto;
+  }
+}
+
+/* ══════════════════════════════════════
+   RECEIPTS VIEW — ported from the entrepreneur's own build, scoped entirely
+   under #receipts-view so its forest/gold theme and tokens can't leak into
+   (or be leaked into by) the rest of the app's beige/brown design.
+══════════════════════════════════════ */
+#receipts-view {
+  --forest-deep: #16301f;
+  --forest: #2f5738;
+  --paper: #eef0e1;
+  --paper-shadow: #d9decb;
+  --gold: #b8842f;
+  --gold-light: #d9ae5f;
+  --ink: #201f1b;
+  --soil: #6e4a2e;
+  --danger: #9a3324;
+  --font-display: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Verdana, sans-serif;
+  --font-ledger: 'Courier New', Courier, monospace;
+
+  background: var(--forest-deep);
+  background-image:
+    radial-gradient(circle at 15% 10%, rgba(255, 255, 255, 0.03) 0, transparent 45%),
+    radial-gradient(circle at 85% 90%, rgba(255, 255, 255, 0.03) 0, transparent 45%);
+  font-family: var(--font-body);
+  color: var(--ink);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.5;
+}
+#receipts-view a {
+  color: inherit;
+}
+#receipts-view button,
+#receipts-view input,
+#receipts-view select,
+#receipts-view textarea {
+  font-family: inherit;
+  touch-action: manipulation;
+}
+#receipts-view .back-link {
+  margin: 22px 0 0 18px;
+  color: rgba(255, 255, 255, 0.75);
+}
+#receipts-view .back-link:hover {
+  color: #fff;
+}
+
+/* ---------- HEADER ---------- */
+#receipts-view header.top {
+  padding: 14px 18px 18px;
+  color: var(--paper);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+#receipts-view .seal {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 2px solid var(--gold-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+#receipts-view .seal::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  border: 1px solid var(--gold-light);
+  opacity: 0.6;
+}
+#receipts-view .seal img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+#receipts-view .brandtext .eyebrow {
+  font-family: var(--font-ledger);
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--gold-light);
+  opacity: 0.85;
+}
+#receipts-view .brandtext h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 26px;
+  margin: 2px 0 0;
+  letter-spacing: 0.5px;
+}
+
+/* ---------- TABS ---------- */
+#receipts-view nav.tabs {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 18px 14px;
+  display: flex;
+  gap: 8px;
+}
+#receipts-view nav.tabs button {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.3px;
+  padding: 10px 18px;
+  border-radius: 8px 8px 0 0;
+  border: none;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--paper);
+  opacity: 0.75;
+}
+#receipts-view nav.tabs button.active {
+  background: var(--paper);
+  color: var(--forest-deep);
+  opacity: 1;
+}
+#receipts-view nav.tabs button:focus-visible {
+  outline: 2px solid var(--gold-light);
+  outline-offset: 2px;
+}
+
+#receipts-view main {
+  max-width: 1100px;
+  margin: 0 auto;
+  background: var(--paper);
+  border-radius: 10px 10px 0 0;
+  min-height: 70vh;
+  padding: 24px 18px 60px;
+}
+@media (min-width: 760px) {
+  #receipts-view main {
+    padding: 32px 32px 70px;
+  }
+}
+
+#receipts-view h2.section-title {
+  font-family: var(--font-display);
+  font-size: 19px;
+  margin: 0 0 14px;
+  color: var(--forest-deep);
+}
+
+/* ---------- FORM ---------- */
+#receipts-view .layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+}
+@media (min-width: 900px) {
+  #receipts-view .layout {
+    grid-template-columns: 1.05fr 0.95fr;
+    align-items: start;
+  }
+  #receipts-view #receipt-preview-wrap {
+    position: sticky;
+    top: 20px;
+  }
+}
+
+#receipts-view .field {
+  margin-bottom: 14px;
+}
+#receipts-view .field label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--soil);
+  margin-bottom: 5px;
+}
+#receipts-view .field input,
+#receipts-view .field select,
+#receipts-view .field textarea {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 15px;
+  padding: 10px 11px;
+  border: 1.5px solid #cfd3bd;
+  border-radius: 7px;
+  background: #fff;
+  color: var(--ink);
+}
+#receipts-view .field input:focus,
+#receipts-view .field select:focus,
+#receipts-view .field textarea:focus {
+  outline: none;
+  border-color: var(--forest);
+  box-shadow: 0 0 0 3px rgba(47, 87, 56, 0.15);
+}
+#receipts-view .row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+#receipts-view fieldset.settings-box {
+  border: 1.5px dashed #b9bfa2;
+  border-radius: 8px;
+  padding: 12px 14px 4px;
+  margin-bottom: 20px;
+}
+#receipts-view fieldset.settings-box legend {
+  font-family: var(--font-ledger);
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--soil);
+  padding: 0 6px;
+}
+#receipts-view details summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--forest);
+  font-size: 13.5px;
+  margin-bottom: 6px;
+}
+
+/* item rows */
+#receipts-view .item-row {
+  display: grid;
+  grid-template-columns: 1fr 60px 100px 32px;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+#receipts-view .item-row input {
+  padding: 8px 9px;
+  font-size: 14px;
+}
+#receipts-view .item-row button.remove {
+  background: none;
+  border: none;
+  color: var(--danger);
+  font-size: 20px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px;
+}
+#receipts-view .item-row button.remove:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+#receipts-view .add-item-btn {
+  background: none;
+  border: 1.5px solid var(--forest);
+  color: var(--forest);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 7px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-bottom: 18px;
+}
+#receipts-view .add-item-btn:hover {
+  background: var(--forest);
+  color: #fff;
+}
+
+#receipts-view .totals-box {
+  background: #fff;
+  border: 1px solid #d9dcc4;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+  font-family: var(--font-ledger);
+  font-size: 14px;
+}
+#receipts-view .totals-box .trow {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+}
+#receipts-view .totals-box .trow.grand {
+  font-weight: 700;
+  font-size: 16px;
+  border-top: 1px dashed #cfd3bd;
+  margin-top: 4px;
+  padding-top: 8px;
+  color: var(--forest-deep);
+}
+
+#receipts-view .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+}
+#receipts-view button.primary,
+#receipts-view button.secondary,
+#receipts-view button.ghost {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 14.5px;
+  padding: 12px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: none;
+}
+#receipts-view button.primary {
+  background: var(--forest);
+  color: #fff;
+}
+#receipts-view button.primary:hover {
+  background: var(--forest-deep);
+}
+#receipts-view button.secondary {
+  background: var(--gold);
+  color: #2a1c04;
+}
+#receipts-view button.secondary:hover {
+  background: var(--gold-light);
+}
+#receipts-view button.ghost {
+  background: none;
+  border: 1.5px solid var(--soil);
+  color: var(--soil);
+}
+#receipts-view button.ghost:hover {
+  background: var(--soil);
+  color: #fff;
+}
+#receipts-view button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+#receipts-view .hint {
+  font-size: 12.5px;
+  color: #6a6f57;
+  margin-top: -6px;
+  margin-bottom: 16px;
+}
+
+/* ---------- RECEIPT PREVIEW ---------- */
+#receipts-view .receipt-paper {
+  background: var(--paper);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+  border-radius: 2px;
+  position: relative;
+  overflow: visible;
+}
+#receipts-view .receipt-paper::before {
+  content: '';
+  display: block;
+  height: 14px;
+  background: radial-gradient(circle at 10px 0, var(--forest-deep) 7px, transparent 7.5px) 0 -7px / 22px 14px repeat-x;
+}
+#receipts-view .receipt-inner {
+  padding: 22px 22px 26px;
+  position: relative;
+}
+#receipts-view .r-head {
+  text-align: center;
+  border-bottom: 1px dashed var(--soil);
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+}
+#receipts-view .r-head .fname {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--forest-deep);
+}
+#receipts-view .r-head .faddr {
+  font-size: 12px;
+  color: var(--soil);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+#receipts-view .r-meta {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-ledger);
+  font-size: 12.5px;
+  color: var(--ink);
+  margin-bottom: 10px;
+}
+#receipts-view .r-cust {
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+#receipts-view .r-cust b {
+  color: var(--forest-deep);
+}
+#receipts-view table.r-items {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  margin-bottom: 10px;
+}
+#receipts-view table.r-items th {
+  text-align: left;
+  font-family: var(--font-ledger);
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--soil);
+  border-bottom: 1px solid var(--soil);
+  padding: 4px 2px;
+}
+#receipts-view table.r-items td {
+  padding: 6px 2px;
+  border-bottom: 1px dotted #c9cdb5;
+}
+#receipts-view table.r-items td.num,
+#receipts-view table.r-items th.num {
+  text-align: right;
+  font-family: var(--font-ledger);
+}
+#receipts-view .r-totals {
+  font-family: var(--font-ledger);
+  font-size: 13.5px;
+  margin-top: 8px;
+}
+#receipts-view .r-totals .trow {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 0;
+}
+#receipts-view .r-totals .trow.grand {
+  font-weight: 700;
+  font-size: 16px;
+  border-top: 1px dashed var(--soil);
+  margin-top: 4px;
+  padding-top: 6px;
+  color: var(--forest-deep);
+}
+#receipts-view .r-totals .trow.balance {
+  color: var(--danger);
+  font-weight: 700;
+}
+#receipts-view .r-foot {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--soil);
+  font-style: italic;
+}
+#receipts-view .r-number {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  font-family: var(--font-ledger);
+  font-size: 11.5px;
+  color: var(--soil);
+}
+
+#receipts-view .stamp {
+  position: absolute;
+  right: 14px;
+  bottom: 70px;
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+  border: 3px double var(--gold);
+  color: var(--gold);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(-14deg);
+  opacity: 0.88;
+  font-family: var(--font-display);
+  pointer-events: none;
+}
+#receipts-view .stamp b {
+  font-size: 20px;
+  letter-spacing: 2px;
+}
+#receipts-view .stamp small {
+  font-family: var(--font-ledger);
+  font-size: 8px;
+  letter-spacing: 1.5px;
+  margin-top: 2px;
+}
+
+/* ---------- LOG VIEW ---------- */
+#receipts-view .log-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+  justify-content: space-between;
+}
+#receipts-view .log-search input {
+  padding: 9px 12px;
+  border: 1.5px solid #cfd3bd;
+  border-radius: 7px;
+  font-size: 14px;
+  min-width: 220px;
+}
+#receipts-view .stat-cards {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+#receipts-view .stat-card {
+  background: #fff;
+  border: 1px solid #d9dcc4;
+  border-radius: 8px;
+  padding: 10px 16px;
+  min-width: 140px;
+}
+#receipts-view .stat-card .label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--soil);
+  font-family: var(--font-ledger);
+}
+#receipts-view .stat-card .value {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--forest-deep);
+}
+
+#receipts-view .log-item {
+  background: #fff;
+  border: 1px solid #d9dcc4;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+#receipts-view .log-item .log-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  cursor: pointer;
+  flex-wrap: wrap;
+}
+#receipts-view .log-item .log-row:hover {
+  background: #f7f8f0;
+}
+#receipts-view .log-num {
+  font-family: var(--font-ledger);
+  font-size: 12.5px;
+  color: var(--soil);
+}
+#receipts-view .log-cust {
+  font-weight: 700;
+  color: var(--forest-deep);
+}
+#receipts-view .log-amt {
+  font-family: var(--font-ledger);
+  font-weight: 700;
+}
+#receipts-view .badge {
+  font-size: 10.5px;
+  font-family: var(--font-ledger);
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  text-transform: uppercase;
+}
+#receipts-view .badge.paid {
+  background: #e2ecdc;
+  color: var(--forest);
+}
+#receipts-view .badge.partial {
+  background: #f6e6cf;
+  color: var(--soil);
+}
+#receipts-view .log-detail {
+  display: none;
+  padding: 0 16px 16px;
+  border-top: 1px dashed #d9dcc4;
+}
+#receipts-view .log-detail.open {
+  display: block;
+}
+#receipts-view .log-detail .actions {
+  margin-top: 12px;
+}
+#receipts-view .empty-state {
+  text-align: center;
+  padding: 50px 20px;
+  color: var(--soil);
+}
+#receipts-view .empty-state .glyph {
+  font-size: 34px;
+  margin-bottom: 10px;
+}
+
+#receipts-view #view-new,
+#receipts-view #view-log {
+  display: none;
+}
+#receipts-view #view-new.active,
+#receipts-view #view-log.active {
+  display: block;
+}
+
+#receipts-view footer.appfoot {
+  text-align: center;
+  padding: 16px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 11.5px;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #receipts-view .receipt-paper,
+  #receipts-view .receipt-paper * {
+    visibility: visible;
+  }
+  #receipts-view .receipt-paper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    box-shadow: none;
+  }
+  #receipts-view .stamp {
+    visibility: visible;
   }
 }

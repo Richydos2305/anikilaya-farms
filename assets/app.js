@@ -64,7 +64,8 @@ const views = {
   login: document.getElementById('login-view'),
   chooser: document.getElementById('chooser-view'),
   form: document.getElementById('form-view'),
-  customize: document.getElementById('customize-view')
+  customize: document.getElementById('customize-view'),
+  receipts: document.getElementById('receipts-view')
 };
 
 function showView(name) {
@@ -119,6 +120,8 @@ loginForm.addEventListener('submit', async (e) => {
   sessionPasscode = value;
   sessionRole = result.role;
   loginForm.reset();
+  // Receipts is an admin-only tool — hide the chooser option entirely for staff.
+  document.getElementById('chooser-receipts-btn').hidden = sessionRole !== 'admin';
   showView('chooser');
 });
 
@@ -142,12 +145,20 @@ async function selectForm(formKey) {
 document.getElementById('chooser-main-btn').addEventListener('click', () => selectForm('main'));
 document.getElementById('chooser-sales-btn').addEventListener('click', () => selectForm('sales'));
 document.getElementById('chooser-expenses-btn').addEventListener('click', () => selectForm('expenses'));
+document.getElementById('chooser-receipts-btn').addEventListener('click', () => {
+  showView('receipts');
+  if (window.initReceiptsApp) window.initReceiptsApp();
+});
 
 document.getElementById('form-back-btn').addEventListener('click', () => {
   showView('chooser');
   prefetchFields();
 });
 document.getElementById('customize-back-btn').addEventListener('click', () => {
+  showView('chooser');
+  prefetchFields();
+});
+document.getElementById('receipts-back-btn').addEventListener('click', () => {
   showView('chooser');
   prefetchFields();
 });
