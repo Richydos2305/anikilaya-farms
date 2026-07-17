@@ -159,6 +159,16 @@ function padSeq_(n) {
   return s;
 }
 
+// Sheets silently converts a 'yyyy-MM-dd' string written via setValues() into
+// a real Date-typed cell, so reading the Date column back needs to reformat
+// it to plain 'yyyy-MM-dd' or the frontend's date parsing breaks.
+function formatDateCell_(value) {
+  if (value instanceof Date) {
+    return Utilities.formatDate(value, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  }
+  return String(value || '');
+}
+
 function jsonResponse_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
@@ -542,7 +552,7 @@ function handleListReceipts_(body) {
     return {
       id: row[1],
       number: row[1],
-      date: String(row[2] || ''),
+      date: formatDateCell_(row[2]),
       customerName: row[3],
       customerPhone: row[4],
       items: items,
