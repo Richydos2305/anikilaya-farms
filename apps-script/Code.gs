@@ -120,7 +120,11 @@ function setup() {
     ['itemName', 'Item Name', 'text', ''],
     ['quantity', 'Quantity', 'number', '']
   ]);
-  ensureSubmissionsTab_(ss, 'Inventory');
+  // Unlike Submissions/Sales/Expenses, Inventory's columns are seeded here
+  // right away instead of growing lazily on first submit — otherwise the
+  // sheet looks broken/empty (just a bare "Timestamp" column) the moment it's
+  // created, before anyone has entered data.
+  ensureSubmissionsTab_(ss, 'Inventory', ['date', 'dept', 'itemName', 'quantity']);
 
   ensureBroilerRearingTab_(ss);
   ensureBroilerExpensesTab_(ss);
@@ -144,13 +148,29 @@ function seedFormFields_(settingsSheet, form, fieldDefs) {
   settingsSheet.getRange(startRow, 1, newRows.length, 6).setValues(newRows);
 }
 
-function ensureSubmissionsTab_(ss, name) {
+function ensureSubmissionsTab_(ss, name, extraColumns) {
   var sheet = ss.getSheetByName(name);
   if (!sheet) {
     sheet = ss.insertSheet(name);
-    sheet.getRange(1, 1).setValue('Timestamp');
+    var header = ['Timestamp'].concat(extraColumns || []);
+    sheet.getRange(1, 1, 1, header.length).setValues([header]);
     sheet.setFrozenRows(1);
-    sheet.autoResizeColumn(1);
+    sheet.autoResizeColumns(1, header.length);
+    return sheet;
+  }
+
+  // Repairs a sheet that was already created before its expected columns
+  // existed (e.g. Inventory, first seeded with just "Timestamp") — appends
+  // any missing header columns in place without touching existing data rows.
+  if (extraColumns && extraColumns.length) {
+    var lastCol = Math.max(sheet.getLastColumn(), 1);
+    var headerRow = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    extraColumns.forEach(function (col) {
+      if (headerRow.indexOf(col) === -1) {
+        headerRow.push(col);
+        sheet.getRange(1, headerRow.length).setValue(col);
+      }
+    });
   }
   return sheet;
 }
@@ -469,8 +489,15 @@ function handleSaveFields_(body) {
 function handleSubmit_(body) {
   var form = normalizeForm_(body.form);
   var passcodes = readPasscodeMap_();
+  var entered = String(body.passcode || '').trim();
 
-  if (String(body.passcode || '').trim() !== passcodes.staff) {
+  // Inventory is the one generic form both staff and admin can submit to —
+  // everything else (Main/Sales/Expenses) stays staff-only.
+  var authorized = form === 'inventory'
+    ? (entered === passcodes.staff || entered === passcodes.admin)
+    : entered === passcodes.staff;
+
+  if (!authorized) {
     return jsonResponse_({ ok: false, error: 'unauthorized' });
   }
 

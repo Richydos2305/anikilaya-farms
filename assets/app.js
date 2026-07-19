@@ -136,7 +136,9 @@ document.getElementById('chooser-logout-btn').addEventListener('click', () => {
 
 async function selectForm(formKey) {
   currentFormKey = formKey;
-  if (sessionRole === 'staff') {
+  // Inventory's columns are edited directly in the Settings sheet, not via
+  // the in-app Customize screen — both staff and admin just enter values.
+  if (formKey === 'inventory' || sessionRole === 'staff') {
     await renderSubmissionForm();
     showView('form');
   } else {
