@@ -28,7 +28,14 @@ function clearSession() {
 // someone revisits a form, so a customize-form change made elsewhere won't
 // show up until the page is reloaded. A failed fetch clears its own cache
 // entry so the next visit/prefetch can retry rather than being stuck.
-const FORM_KEYS = ['main', 'sales', 'expenses', 'inventory'];
+const FORM_KEYS = ['main', 'afPen2', 'sales', 'expenses', 'inventory'];
+const FORM_TITLES = {
+  main: 'AF Pen 1',
+  afPen2: 'AF Pen 2',
+  sales: 'Sales',
+  expenses: 'Expenses',
+  inventory: 'Inventory'
+};
 let fieldsCache = {};
 function getFieldsCached_(formKey) {
   if (!fieldsCache[formKey]) {
@@ -134,20 +141,27 @@ document.getElementById('chooser-logout-btn').addEventListener('click', () => {
   prefetchFields();
 });
 
+const formTitleEl = document.getElementById('form-title');
+const customizeTitleEl = document.getElementById('customize-title');
+
 async function selectForm(formKey) {
   currentFormKey = formKey;
+  var title = FORM_TITLES[formKey] || 'Form';
   // Inventory's columns are edited directly in the Settings sheet, not via
   // the in-app Customize screen — both staff and admin just enter values.
   if (formKey === 'inventory' || sessionRole === 'staff') {
+    formTitleEl.textContent = title;
     await renderSubmissionForm();
     showView('form');
   } else {
+    customizeTitleEl.textContent = 'Customize ' + title;
     await renderFieldBuilder();
     showView('customize');
   }
 }
 
 document.getElementById('chooser-main-btn').addEventListener('click', () => selectForm('main'));
+document.getElementById('chooser-af-pen-2-btn').addEventListener('click', () => selectForm('afPen2'));
 document.getElementById('chooser-sales-btn').addEventListener('click', () => selectForm('sales'));
 document.getElementById('chooser-expenses-btn').addEventListener('click', () => selectForm('expenses'));
 document.getElementById('chooser-inventory-btn').addEventListener('click', () => selectForm('inventory'));

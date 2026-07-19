@@ -1,19 +1,21 @@
 /**
  * Anikilaya Farms — backend for the static frontend.
  * Deploy as a Web App (Execute as: Me, Who has access: Anyone).
- * Bound to the Google Sheet containing the "Settings", "Submissions", "Sales",
- * and "Expenses" tabs.
+ * Bound to the Google Sheet containing the "Settings", "AF Pen 1", "AF Pen 2",
+ * "Sales", and "Expenses" tabs.
  */
 
 var SUBMISSIONS_SHEET_BY_FORM = {
-  main: 'Submissions',
+  main: 'AF Pen 1',
+  afPen2: 'AF Pen 2',
   sales: 'Sales',
   expenses: 'Expenses',
   inventory: 'Inventory'
 };
 
 var FORM_LABELS = {
-  main: 'Daily Farm Record',
+  main: 'AF Pen 1',
+  afPen2: 'AF Pen 2',
   sales: 'Sales',
   expenses: 'Expenses',
   receipts: 'Receipt',
@@ -37,7 +39,7 @@ var BROILER_EXPENSES_HEADER = [
 ];
 
 function normalizeForm_(form) {
-  return (form === 'sales' || form === 'expenses' || form === 'inventory') ? form : 'main';
+  return (form === 'sales' || form === 'expenses' || form === 'inventory' || form === 'afPen2') ? form : 'main';
 }
 
 function getSpreadsheet_() {
@@ -70,9 +72,11 @@ function getOwnerEmail_() {
 
 /**
  * Run this once manually from the Apps Script editor (select "setup" in the
- * function dropdown, click Run) to create/seed the Settings, Submissions,
- * Sales, and Expenses tabs. Safe to re-run — it only creates tabs and seeds
- * field rows that don't already exist, never touches what's already there.
+ * function dropdown, click Run) to create/seed the Settings, AF Pen 1,
+ * AF Pen 2, Sales, and Expenses tabs. Safe to re-run — it only creates tabs
+ * and seeds field rows that don't already exist, never touches what's
+ * already there (and renames a pre-existing "Submissions" tab to "AF Pen 1"
+ * in place if found).
  */
 function setup() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -93,7 +97,20 @@ function setup() {
     settings.autoResizeColumns(1, 6);
   }
 
-  ensureSubmissionsTab_(ss, 'Submissions');
+  // AF Pen 1 used to be called "Submissions" — rename the existing tab in
+  // place on re-setup so the entrepreneur's data isn't touched or duplicated.
+  var legacySubmissions = ss.getSheetByName('Submissions');
+  if (legacySubmissions && !ss.getSheetByName('AF Pen 1')) {
+    legacySubmissions.setName('AF Pen 1');
+  }
+  ensureSubmissionsTab_(ss, 'AF Pen 1');
+
+  // AF Pen 2 is a carbon copy of AF Pen 1 (same fields, same staff-submit
+  // behavior) for a second, independent pen — copy whatever fields AF Pen 1
+  // currently has (including any the admin has already customized) rather
+  // than reseeding the original defaults.
+  seedAfPen2FieldsFromMain_(settings);
+  ensureSubmissionsTab_(ss, 'AF Pen 2');
 
   seedFormFields_(settings, 'sales', [
     ['date', 'Date', 'date', ''],
@@ -120,7 +137,7 @@ function setup() {
     ['itemName', 'Item Name', 'text', ''],
     ['quantity', 'Quantity', 'number', '']
   ]);
-  // Unlike Submissions/Sales/Expenses, Inventory's columns are seeded here
+  // Unlike AF Pen 1/AF Pen 2/Sales/Expenses, Inventory's columns are seeded here
   // right away instead of growing lazily on first submit — otherwise the
   // sheet looks broken/empty (just a bare "Timestamp" column) the moment it's
   // created, before anyone has entered data.
@@ -129,7 +146,32 @@ function setup() {
   ensureBroilerRearingTab_(ss);
   ensureBroilerExpensesTab_(ss);
 
-  Logger.log('Setup complete. Settings, Submissions, Sales, Expenses, Receipts, Inventory, BroilerRearing, and BroilerExpenses tabs are ready.');
+  Logger.log('Setup complete. Settings, AF Pen 1, AF Pen 2, Sales, Expenses, Receipts, Inventory, BroilerRearing, and BroilerExpenses tabs are ready.');
+}
+
+// Copies AF Pen 1's current field rows (whatever the admin has customized
+// them to, including legacy rows with a blank Form column) into a fresh
+// 'afPen2' block, so AF Pen 2 starts as a true carbon copy. No-ops once
+// afPen2 has its own field rows, so a later AF Pen 1 customization won't
+// retroactively overwrite AF Pen 2.
+function seedAfPen2FieldsFromMain_(settingsSheet) {
+  var lastRow = settingsSheet.getLastRow();
+  if (lastRow < 2) return;
+
+  var existing = settingsSheet.getRange(2, 1, lastRow - 1, 6).getValues();
+  var alreadySeeded = existing.some(function (row) { return row[0] === 'field' && row[4] === 'afPen2'; });
+  if (alreadySeeded) return;
+
+  var mainFieldRows = existing.filter(function (row) {
+    return row[0] === 'field' && (row[4] === 'main' || !row[4]);
+  });
+  if (mainFieldRows.length === 0) return;
+
+  var newRows = mainFieldRows.map(function (row) {
+    return ['field', row[1], row[2], row[3], 'afPen2', row[5]];
+  });
+  var startRow = settingsSheet.getLastRow() + 1;
+  settingsSheet.getRange(startRow, 1, newRows.length, 6).setValues(newRows);
 }
 
 function seedFormFields_(settingsSheet, form, fieldDefs) {
@@ -538,7 +580,7 @@ function handleSubmit_(body) {
       sheet.getRange(newRow, colIndex + 1).setValue(cellValue);
     });
 
-    if (form === 'main') {
+    if (form === 'main' || form === 'afPen2') {
       var eggRateColIndex = headerRow.indexOf('Egg Production Rate');
       if (eggRateColIndex === -1) {
         eggRateColIndex = headerRow.length;
