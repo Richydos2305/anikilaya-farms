@@ -56,6 +56,9 @@
           <button type="button" class="btn-save" id="chooser-main-btn">Daily Farm Record</button>
           <button type="button" class="btn-save" id="chooser-sales-btn">Sales</button>
           <button type="button" class="btn-save" id="chooser-expenses-btn">Expenses</button>
+          <button type="button" class="btn-save" id="chooser-inventory-btn">Inventory</button>
+          <button type="button" class="btn-save" id="chooser-broiler-rearing-btn">Broiler Rearing</button>
+          <button type="button" class="btn-save" id="chooser-broiler-expenses-btn" hidden>Broiler Expenses</button>
           <button type="button" class="btn-save" id="chooser-receipts-btn" hidden>Receipts</button>
         </div>
       </div>
@@ -97,6 +100,116 @@
 
         <div class="form-actions">
           <button type="button" id="save-fields-btn" class="btn-save">Save</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ BROILER REARING VIEW (staff submits, everyone views the log) ═══ -->
+    <section id="broiler-rearing-view" class="view" hidden>
+      <div class="form-page">
+        <div class="view-brand"><img src="/assets/logo.jpg" alt="" /><span>Anikilaya Farms</span></div>
+        <button type="button" class="back-link" id="broiler-rearing-back-btn">← Back</button>
+        <h1 class="page-title">Broiler Rearing Record</h1>
+
+        <div id="broiler-rearing-form-wrap">
+          <form id="broiler-rearing-form">
+            <div class="form-section">
+              <div class="form-group">
+                <label for="br-date">Date</label>
+                <input id="br-date" class="form-input" type="date" required />
+              </div>
+              <div class="form-group">
+                <label for="br-age">Age</label>
+                <input id="br-age" class="form-input" type="text" placeholder="e.g. 1 or 2 WEEKS" required />
+              </div>
+              <div class="form-group">
+                <label for="br-opening-stock">Opening Stock</label>
+                <input id="br-opening-stock" class="form-input" type="number" min="0" step="1" placeholder="0" required />
+              </div>
+              <div class="form-group">
+                <label for="br-mortality">Mortality</label>
+                <input id="br-mortality" class="form-input" type="number" min="0" step="1" placeholder="0" required />
+              </div>
+              <div class="form-group">
+                <label for="br-closing-stock">Closing Stock</label>
+                <input id="br-closing-stock" class="form-input" type="number" readonly />
+              </div>
+              <div class="form-group">
+                <label for="br-feed-consumed">Feed Consumed</label>
+                <input id="br-feed-consumed" class="form-input" type="text" placeholder="Optional" />
+              </div>
+              <div class="form-group">
+                <label for="br-medication">Medication</label>
+                <input id="br-medication" class="form-input" type="text" placeholder="Optional" />
+              </div>
+              <div class="form-group">
+                <label for="br-avg-body-weight">Avg. Body Weight</label>
+                <input id="br-avg-body-weight" class="form-input" type="text" placeholder="Optional" />
+              </div>
+              <div class="form-group">
+                <label for="br-comment">Comment</label>
+                <input id="br-comment" class="form-input" type="text" placeholder="Optional" />
+              </div>
+            </div>
+
+            <div id="broiler-rearing-status" class="success-banner" hidden>Saved.</div>
+            <div id="broiler-rearing-error" class="error-banner" hidden>Something went wrong. Please try again.</div>
+
+            <div class="form-actions">
+              <button class="btn-save" type="submit">Save Entry</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="form-section">
+          <h2 class="page-title" style="font-size: 18px">Log</h2>
+          <div id="broiler-rearing-log" class="data-log"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ BROILER EXPENSES VIEW (admin-only) ═══ -->
+    <section id="broiler-expenses-view" class="view" hidden>
+      <div class="form-page">
+        <div class="view-brand"><img src="/assets/logo.jpg" alt="" /><span>Anikilaya Farms</span></div>
+        <button type="button" class="back-link" id="broiler-expenses-back-btn">← Back</button>
+        <h1 class="page-title">Broiler Expenses</h1>
+
+        <form id="broiler-expenses-form">
+          <div class="form-section">
+            <div class="form-group">
+              <label for="be-date">Date</label>
+              <input id="be-date" class="form-input" type="date" required />
+            </div>
+            <div class="form-group">
+              <label for="be-particulars">Particulars</label>
+              <input id="be-particulars" class="form-input" type="text" placeholder="e.g. Starter feed" required />
+            </div>
+            <div class="form-group">
+              <label for="be-qty">Qty</label>
+              <input id="be-qty" class="form-input" type="number" min="0" step="0.01" placeholder="Optional" />
+            </div>
+            <div class="form-group">
+              <label for="be-price">Price (₦)</label>
+              <input id="be-price" class="form-input" type="number" min="0" step="0.01" placeholder="Optional" />
+            </div>
+            <div class="form-group">
+              <label for="be-amount">Amount (₦)</label>
+              <input id="be-amount" class="form-input" type="number" min="0" step="0.01" placeholder="0" required />
+            </div>
+          </div>
+
+          <div id="broiler-expenses-status" class="success-banner" hidden>Saved.</div>
+          <div id="broiler-expenses-error" class="error-banner" hidden>Something went wrong. Please try again.</div>
+
+          <div class="form-actions">
+            <button class="btn-save" type="submit">Save Entry</button>
+          </div>
+        </form>
+
+        <div class="form-section">
+          <h2 class="page-title" style="font-size: 18px">Log</h2>
+          <div id="broiler-expenses-log" class="data-log"></div>
         </div>
       </div>
     </section>
@@ -243,6 +356,8 @@
     </section>
 
     <script src="/assets/app.js"></script>
+    <script src="/assets/broiler-rearing.js"></script>
+    <script src="/assets/broiler-expenses.js"></script>
     <script src="/assets/receipts.js"></script>
   </body>
 </html>

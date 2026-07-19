@@ -8,14 +8,18 @@
 var SUBMISSIONS_SHEET_BY_FORM = {
   main: 'Submissions',
   sales: 'Sales',
-  expenses: 'Expenses'
+  expenses: 'Expenses',
+  inventory: 'Inventory'
 };
 
 var FORM_LABELS = {
   main: 'Daily Farm Record',
   sales: 'Sales',
   expenses: 'Expenses',
-  receipts: 'Receipt'
+  receipts: 'Receipt',
+  inventory: 'Inventory',
+  broilerRearing: 'Broiler Rearing',
+  broilerExpenses: 'Broiler Expense'
 };
 
 var RECEIPTS_HEADER = [
@@ -23,8 +27,17 @@ var RECEIPTS_HEADER = [
   'Subtotal', 'Discount', 'Total', 'AmountPaid', 'PaymentMethod', 'Notes'
 ];
 
+var BROILER_REARING_HEADER = [
+  'Timestamp', 'Date', 'Age', 'OpeningStock', 'Mortality', 'ClosingStock',
+  'FeedConsumed', 'Medication', 'AvgBodyWeight', 'Comment'
+];
+
+var BROILER_EXPENSES_HEADER = [
+  'Timestamp', 'Date', 'Particulars', 'Qty', 'Price', 'Amount'
+];
+
 function normalizeForm_(form) {
-  return (form === 'sales' || form === 'expenses') ? form : 'main';
+  return (form === 'sales' || form === 'expenses' || form === 'inventory') ? form : 'main';
 }
 
 function getSpreadsheet_() {
@@ -41,6 +54,14 @@ function getSubmissionsSheet_(form) {
 
 function getReceiptsSheet_() {
   return getSpreadsheet_().getSheetByName('Receipts');
+}
+
+function getBroilerRearingSheet_() {
+  return getSpreadsheet_().getSheetByName('BroilerRearing');
+}
+
+function getBroilerExpensesSheet_() {
+  return getSpreadsheet_().getSheetByName('BroilerExpenses');
 }
 
 function getOwnerEmail_() {
@@ -93,7 +114,18 @@ function setup() {
   ensureReceiptsTab_(ss);
   seedReceiptSettings_(settings);
 
-  Logger.log('Setup complete. Settings, Submissions, Sales, Expenses, and Receipts tabs are ready.');
+  seedFormFields_(settings, 'inventory', [
+    ['date', 'Date', 'date', ''],
+    ['dept', 'Department', 'select', 'Layers,Broiler,Piggery,Fish,Cattle'],
+    ['itemName', 'Item Name', 'text', ''],
+    ['quantity', 'Quantity', 'number', '']
+  ]);
+  ensureSubmissionsTab_(ss, 'Inventory');
+
+  ensureBroilerRearingTab_(ss);
+  ensureBroilerExpensesTab_(ss);
+
+  Logger.log('Setup complete. Settings, Submissions, Sales, Expenses, Receipts, Inventory, BroilerRearing, and BroilerExpenses tabs are ready.');
 }
 
 function seedFormFields_(settingsSheet, form, fieldDefs) {
@@ -130,6 +162,28 @@ function ensureReceiptsTab_(ss) {
     sheet.getRange(1, 1, 1, RECEIPTS_HEADER.length).setValues([RECEIPTS_HEADER]);
     sheet.setFrozenRows(1);
     sheet.autoResizeColumns(1, RECEIPTS_HEADER.length);
+  }
+  return sheet;
+}
+
+function ensureBroilerRearingTab_(ss) {
+  var sheet = ss.getSheetByName('BroilerRearing');
+  if (!sheet) {
+    sheet = ss.insertSheet('BroilerRearing');
+    sheet.getRange(1, 1, 1, BROILER_REARING_HEADER.length).setValues([BROILER_REARING_HEADER]);
+    sheet.setFrozenRows(1);
+    sheet.autoResizeColumns(1, BROILER_REARING_HEADER.length);
+  }
+  return sheet;
+}
+
+function ensureBroilerExpensesTab_(ss) {
+  var sheet = ss.getSheetByName('BroilerExpenses');
+  if (!sheet) {
+    sheet = ss.insertSheet('BroilerExpenses');
+    sheet.getRange(1, 1, 1, BROILER_EXPENSES_HEADER.length).setValues([BROILER_EXPENSES_HEADER]);
+    sheet.setFrozenRows(1);
+    sheet.autoResizeColumns(1, BROILER_EXPENSES_HEADER.length);
   }
   return sheet;
 }
@@ -205,6 +259,14 @@ function doPost(e) {
         return handleSaveReceipt_(body);
       case 'deleteReceipt':
         return handleDeleteReceipt_(body);
+      case 'saveBroilerRearing':
+        return handleSaveBroilerRearing_(body);
+      case 'listBroilerRearing':
+        return handleListBroilerRearing_(body);
+      case 'saveBroilerExpense':
+        return handleSaveBroilerExpense_(body);
+      case 'listBroilerExpenses':
+        return handleListBroilerExpenses_(body);
       default:
         return jsonResponse_({ ok: false, error: 'unknown_action' });
     }
@@ -670,6 +732,165 @@ function handleDeleteReceipt_(body) {
   } finally {
     lock.releaseLock();
   }
+}
+
+// ─── Broiler Rearing & Broiler Expenses ───
+
+function handleSaveBroilerRearing_(body) {
+  var passcodes = readPasscodeMap_();
+  if (String(body.passcode || '').trim() !== passcodes.staff) {
+    return jsonResponse_({ ok: false, error: 'unauthorized' });
+  }
+
+  var date = String(body.date || '').trim();
+  var age = String(body.age || '').trim();
+  var openingStock = Number(body.openingStock);
+  var mortality = Number(body.mortality);
+
+  if (!date || !age || body.openingStock === undefined || body.openingStock === '' ||
+      body.mortality === undefined || body.mortality === '' || isNaN(openingStock) || isNaN(mortality)) {
+    return jsonResponse_({ ok: false, error: 'validation' });
+  }
+
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+
+    var sheet = getBroilerRearingSheet_();
+    var timestamp = new Date();
+    var closingStock = openingStock - mortality;
+    var entry = {
+      date: date,
+      age: age,
+      openingStock: openingStock,
+      mortality: mortality,
+      closingStock: closingStock,
+      feedConsumed: String(body.feedConsumed || '').trim(),
+      medication: String(body.medication || '').trim(),
+      avgBodyWeight: String(body.avgBodyWeight || '').trim(),
+      comment: String(body.comment || '').trim(),
+      createdAt: timestamp.toISOString()
+    };
+
+    var newRow = sheet.getLastRow() + 1;
+    sheet.getRange(newRow, 1, 1, BROILER_REARING_HEADER.length).setValues([[
+      timestamp, entry.date, entry.age, entry.openingStock, entry.mortality, entry.closingStock,
+      entry.feedConsumed, entry.medication, entry.avgBodyWeight, entry.comment
+    ]]);
+
+    sendOwnerAlertEmail_(FORM_LABELS.broilerRearing);
+
+    return jsonResponse_({ ok: true, entry: entry });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function handleListBroilerRearing_(body) {
+  var passcodes = readPasscodeMap_();
+  var entered = String(body.passcode || '').trim();
+  if (!entered || (entered !== passcodes.staff && entered !== passcodes.admin)) {
+    return jsonResponse_({ ok: false, error: 'unauthorized' });
+  }
+
+  var sheet = getBroilerRearingSheet_();
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return jsonResponse_({ ok: true, entries: [] });
+  }
+
+  var values = sheet.getRange(2, 1, lastRow - 1, BROILER_REARING_HEADER.length).getValues();
+  var entries = values.map(function (row) {
+    return {
+      date: formatDateCell_(row[1]),
+      age: String(row[2] || ''),
+      openingStock: Number(row[3]) || 0,
+      mortality: Number(row[4]) || 0,
+      closingStock: Number(row[5]) || 0,
+      feedConsumed: String(row[6] || ''),
+      medication: String(row[7] || ''),
+      avgBodyWeight: String(row[8] || ''),
+      comment: String(row[9] || ''),
+      createdAt: row[0] instanceof Date ? row[0].toISOString() : String(row[0] || '')
+    };
+  });
+
+  entries.reverse(); // sheet rows grow downward on append; newest-first for the log
+  return jsonResponse_({ ok: true, entries: entries });
+}
+
+function handleSaveBroilerExpense_(body) {
+  var passcodes = readPasscodeMap_();
+  if (!isAdminAuthorized_(body.passcode, passcodes)) {
+    return jsonResponse_({ ok: false, error: 'unauthorized' });
+  }
+
+  var date = String(body.date || '').trim();
+  var particulars = String(body.particulars || '').trim();
+  var amount = Number(body.amount);
+
+  if (!date || !particulars || body.amount === undefined || body.amount === '' || isNaN(amount)) {
+    return jsonResponse_({ ok: false, error: 'validation' });
+  }
+
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+
+    var sheet = getBroilerExpensesSheet_();
+    var timestamp = new Date();
+    var entry = {
+      date: date,
+      particulars: particulars,
+      qty: body.qty === undefined || body.qty === '' ? '' : Number(body.qty),
+      price: body.price === undefined || body.price === '' ? '' : Number(body.price),
+      amount: amount,
+      createdAt: timestamp.toISOString()
+    };
+
+    var newRow = sheet.getLastRow() + 1;
+    sheet.getRange(newRow, 1, 1, BROILER_EXPENSES_HEADER.length).setValues([[
+      timestamp, entry.date, entry.particulars, entry.qty, entry.price, entry.amount
+    ]]);
+
+    sendOwnerAlertEmail_(FORM_LABELS.broilerExpenses);
+
+    return jsonResponse_({ ok: true, entry: entry });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function handleListBroilerExpenses_(body) {
+  var passcodes = readPasscodeMap_();
+  if (!isAdminAuthorized_(body.passcode, passcodes)) {
+    return jsonResponse_({ ok: false, error: 'unauthorized' });
+  }
+
+  var sheet = getBroilerExpensesSheet_();
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return jsonResponse_({ ok: true, entries: [] });
+  }
+
+  var values = sheet.getRange(2, 1, lastRow - 1, BROILER_EXPENSES_HEADER.length).getValues();
+  var runningBalance = 0;
+  var entries = values.map(function (row) {
+    var amount = Number(row[5]) || 0;
+    runningBalance += amount;
+    return {
+      date: formatDateCell_(row[1]),
+      particulars: String(row[2] || ''),
+      qty: row[3] === '' || row[3] === null ? '' : Number(row[3]),
+      price: row[4] === '' || row[4] === null ? '' : Number(row[4]),
+      amount: amount,
+      cumulativeBalance: runningBalance,
+      createdAt: row[0] instanceof Date ? row[0].toISOString() : String(row[0] || '')
+    };
+  });
+
+  entries.reverse(); // reverse only after the running sum is computed, so the math stays chronological
+  return jsonResponse_({ ok: true, entries: entries });
 }
 
 // Egg Production Rate = (Crate Collected × 30) / Closing Stock, stored as a

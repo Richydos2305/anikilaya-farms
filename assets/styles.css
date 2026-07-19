@@ -517,6 +517,37 @@ input {
 }
 
 /* ══════════════════════════════════════
+   DATA LOG TABLE — shared by Broiler Rearing and Broiler Expenses. Unlike
+   Receipts, these two views stay in the app's default beige/brown theme, so
+   this reuses the existing tokens instead of declaring its own.
+══════════════════════════════════════ */
+.data-log-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.data-log-table th,
+.data-log-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+.data-log-table th {
+  font-weight: 600;
+  color: var(--fg-secondary);
+  background: var(--active-nav-bg);
+}
+.data-log-table tbody tr:hover {
+  background: var(--active-nav-bg);
+}
+.data-log {
+  overflow-x: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-input);
+}
+
+/* ══════════════════════════════════════
    RECEIPTS VIEW — ported from the entrepreneur's own build, scoped entirely
    under #receipts-view so its forest/gold theme and tokens can't leak into
    (or be leaked into by) the rest of the app's beige/brown design.

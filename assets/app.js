@@ -28,7 +28,7 @@ function clearSession() {
 // someone revisits a form, so a customize-form change made elsewhere won't
 // show up until the page is reloaded. A failed fetch clears its own cache
 // entry so the next visit/prefetch can retry rather than being stuck.
-const FORM_KEYS = ['main', 'sales', 'expenses'];
+const FORM_KEYS = ['main', 'sales', 'expenses', 'inventory'];
 let fieldsCache = {};
 function getFieldsCached_(formKey) {
   if (!fieldsCache[formKey]) {
@@ -65,7 +65,9 @@ const views = {
   chooser: document.getElementById('chooser-view'),
   form: document.getElementById('form-view'),
   customize: document.getElementById('customize-view'),
-  receipts: document.getElementById('receipts-view')
+  receipts: document.getElementById('receipts-view'),
+  broilerRearing: document.getElementById('broiler-rearing-view'),
+  broilerExpenses: document.getElementById('broiler-expenses-view')
 };
 
 function showView(name) {
@@ -120,8 +122,9 @@ loginForm.addEventListener('submit', async (e) => {
   sessionPasscode = value;
   sessionRole = result.role;
   loginForm.reset();
-  // Receipts is an admin-only tool — hide the chooser option entirely for staff.
+  // Receipts and Broiler Expenses are admin-only tools — hide those chooser options entirely for staff.
   document.getElementById('chooser-receipts-btn').hidden = sessionRole !== 'admin';
+  document.getElementById('chooser-broiler-expenses-btn').hidden = sessionRole !== 'admin';
   showView('chooser');
 });
 
@@ -145,9 +148,18 @@ async function selectForm(formKey) {
 document.getElementById('chooser-main-btn').addEventListener('click', () => selectForm('main'));
 document.getElementById('chooser-sales-btn').addEventListener('click', () => selectForm('sales'));
 document.getElementById('chooser-expenses-btn').addEventListener('click', () => selectForm('expenses'));
+document.getElementById('chooser-inventory-btn').addEventListener('click', () => selectForm('inventory'));
 document.getElementById('chooser-receipts-btn').addEventListener('click', () => {
   showView('receipts');
   if (window.initReceiptsApp) window.initReceiptsApp();
+});
+document.getElementById('chooser-broiler-rearing-btn').addEventListener('click', () => {
+  showView('broilerRearing');
+  if (window.initBroilerRearingApp) window.initBroilerRearingApp();
+});
+document.getElementById('chooser-broiler-expenses-btn').addEventListener('click', () => {
+  showView('broilerExpenses');
+  if (window.initBroilerExpensesApp) window.initBroilerExpensesApp();
 });
 
 document.getElementById('form-back-btn').addEventListener('click', () => {
@@ -159,6 +171,14 @@ document.getElementById('customize-back-btn').addEventListener('click', () => {
   prefetchFields();
 });
 document.getElementById('receipts-back-btn').addEventListener('click', () => {
+  showView('chooser');
+  prefetchFields();
+});
+document.getElementById('broiler-rearing-back-btn').addEventListener('click', () => {
+  showView('chooser');
+  prefetchFields();
+});
+document.getElementById('broiler-expenses-back-btn').addEventListener('click', () => {
   showView('chooser');
   prefetchFields();
 });
